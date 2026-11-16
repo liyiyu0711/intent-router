@@ -41,6 +41,7 @@ for label, tpls in templates.items():
         data.append({"text": text, "label": label})
 
 df = pd.DataFrame(data).sample(frac=1).reset_index(drop=True)
+df = df.drop_duplicates(subset=["text"]).reset_index(drop=True)
 df.to_csv("data.csv", index=False, encoding="utf-8")
 print("数据生成完毕，共", len(df), "条\n")
 
