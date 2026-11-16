@@ -7,3 +7,4 @@ docs/
 *.pth
 data.csv
 checkpoints/
+real_*.csv
