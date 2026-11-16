@@ -4,27 +4,36 @@ from torch.utils.data import DataLoader, TensorDataset
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 
-df = pd.read_csv("data.csv")
-le = LabelEncoder()
-y = le.fit_transform(df["label"])
+train_df = pd.read_csv("real_train.csv")
+test_df = pd.read_csv("real_test.csv")
 
-# 字级词表（中文不需要分词）:统计所有出现过的汉字，给每个字一个整数ID。<PAD> 占0号，专门用来补齐。
-vocab = {"<PAD>": 0}
-for text in df["text"]:
-    for ch in text:
-        if ch not in vocab:
-            vocab[ch] = len(vocab)
-#一句话变成长度固定为 20 的整数列表：编码+截断+补齐（用0）
-MAX_LEN = 20
+
+le = LabelEncoder()
+y_train = le.fit_transform(train_df["label"])
+y_test = le.transform(test_df['label'])
+
+# 1. 建词表（按空格切分，并转成小写）
+vocab = {"<PAD>": 0, "<UNK>": 1}  #<UNK> 代表未知词
+for text in train_df["text"]:
+    # .lower() 转小写，.split() 按空格切分成单词列表
+    for word in text.lower().split():
+        if word not in vocab: 
+            vocab[word] = len(vocab)
+
+MAX_LEN = 15
+
+# 2. 编码文本
 def encode(text):
-    seq = [vocab.get(ch, 0) for ch in text][:MAX_LEN]
+    # 同样要转小写并按空格切分
+    seq = [vocab.get(word, 1) for word in text.lower().split()]
+    # 截断或补齐
+    seq = seq[:MAX_LEN]
     return seq + [0] * (MAX_LEN - len(seq))
 
 #划分训练集与测试集
-X = [encode(t) for t in df["text"]]
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42, stratify=y
-)
+X_train = [encode(t) for t in train_df["text"]]
+X_test = [encode(t) for t in test_df["text"]]
+
 #把 Python 列表转成 PyTorch 张量，再交给 DataLoader 按 batch 取。shuffle=True 每个 epoch 打乱顺序，防止模型学“样本顺序”这种假规律
 train_ds = TensorDataset(torch.tensor(X_train), torch.tensor(y_train))
 test_ds  = TensorDataset(torch.tensor(X_test),  torch.tensor(y_test))
