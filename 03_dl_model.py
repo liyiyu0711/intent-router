@@ -71,7 +71,7 @@ criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
 #训练循环
-for epoch in range(20):
+for epoch in range(30):
     #切到训练模式
     model.train()
     for bx, by in train_loader:
@@ -106,5 +106,5 @@ with open("checkpoints/label_map.json", "w", encoding="utf-8") as f:
 with open("checkpoints/config.json", "w") as f:
     json.dump({
         "embed_dim": 32, "num_classes": len(le.classes_),
-        "kernel_sizes": [2,3,4], "num_filters": 32, "max_len": MAX_LEN
+        "kernel_sizes": [1,2,3], "num_filters": 32, "max_len": MAX_LEN
     }, f)
