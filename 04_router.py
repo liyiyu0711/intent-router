@@ -64,25 +64,42 @@ class AgentRouter:
         return label, probs[idx]
 
     #3. 级联路由策略
-    def route(self, text, nb_threshold=0.05, cnn_threshold=0.60):
+    def route(self, text, nb_threshold=0.04, margin_threshold=2.0, cnn_threshold=0.60):
         result = {"text": text, "intent": None, "confidence": 0.0, "action": None, "note": ""}
 
         # 第一级：朴素贝叶斯粗筛
-        nb_intent, nb_conf = self.predict_nb(text)
         
-        if nb_conf >= nb_threshold:
-            # 贝叶斯极度自信，直接采纳
-            result.update({"intent": nb_intent, "confidence": nb_conf, "action": "direct_nb", "note": f"NB置信度极高 ({nb_conf:.2f})"})
+        # 为了算 Margin，我们需要拿到所有的概率分布
+        x_vec = self.vectorizer.transform([text])
+        probs_nb = self.nb_model.predict_proba(x_vec)[0]
+        
+        # 找出排名前 2 的概率
+        sorted_indices = probs_nb.argsort()[::-1]
+        top1_conf = probs_nb[sorted_indices[0]]
+        top2_conf = probs_nb[sorted_indices[1]]
+        nb_intent = self.nb_model.classes_[sorted_indices[0]]
+        
+        # 相对置信度：第一名是第二名的几倍？
+        margin = top1_conf / (top2_conf + 1e-6) # 加个极小值防除以0
+
+        # 判定条件：不仅绝对概率要过关，还得比第二名高出一大截（比如 2 倍以上）
+        if top1_conf >= nb_threshold and margin >= margin_threshold:
+            result.update({
+                "intent": nb_intent, 
+                "confidence": top1_conf, 
+                "action": "direct_nb", 
+                "note": f"NB高置信分流 (绝对概率:{top1_conf:.3f}, 远超第二名 {margin:.1f}倍)"
+            })
             return result
 
         # 第二级：贝叶斯拿不准，交给 TextCNN 复核
         cnn_intent, cnn_conf = self.predict_textcnn(text)
         
         if cnn_conf >= cnn_threshold:
-            result.update({"intent": cnn_intent, "confidence": cnn_conf, "action": "review_cnn", "note": f"NB({nb_conf:.2f})拿不准，CNN复核为 {cnn_intent} ({cnn_conf:.2f})"})
+            result.update({"intent": cnn_intent, "confidence": cnn_conf, "action": "review_cnn", "note": f"NB({top1_conf:.2f})拿不准，CNN复核为 {cnn_intent} ({cnn_conf:.2f})"})
         else:
             # 第三级：两个模型都拿不准，走兜底（闲聊或转人工）
-            result.update({"intent": "fallback_chat", "confidence": cnn_conf, "action": "fallback", "note": f"两模型均无把握 (NB:{nb_conf:.2f}, CNN:{cnn_conf:.2f})，转兜底"})
+            result.update({"intent": "fallback_chat", "confidence": cnn_conf, "action": "fallback", "note": f"两模型均无把握 (NB:{top1_conf:.2f}, CNN:{cnn_conf:.2f})，转兜底"})
             
         return result
 
