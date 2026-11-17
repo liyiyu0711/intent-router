@@ -30,3 +30,12 @@ pred_knn = knn.predict(X_test_vec)
 print("=== 传统机器学习 ===")
 print(f"朴素贝叶斯 准确率: {accuracy_score(df_test['label'], pred_nb):.4f}, Macro-F1: {f1_score(df_test['label'], pred_nb, average='macro'):.4f}")
 print(f"KNN       准确率: {accuracy_score(df_test['label'], pred_knn):.4f}, Macro-F1: {f1_score(df_test['label'], pred_knn, average='macro'):.4f}")
+
+import joblib
+import os
+os.makedirs("checkpoints", exist_ok=True)
+
+# 把向量化器和朴素贝叶斯模型存下来
+joblib.dump(vectorizer, "checkpoints/tfidf_vectorizer.pkl")
+joblib.dump(nb, "checkpoints/nb_model.pkl")
+print("NB 模型已保存！")
