@@ -8,25 +8,20 @@ dataset = load_dataset("FastFit/clinc_150")
 print("训练集大小:", len(dataset['train']))
 print("数据样例:", dataset['train'][0])
 
-# 2. 我们要筛选出指定的 10 个意图类别
-# 如果你不知道有哪些类别，可以运行 set(dataset['train']['intent']) 看看
-selected_intents = ['translate', 'timer', 'meaning of life', 'definition', 'transfer', 'insurance change', 'find phone', 'travel alert', 'pto request', 'improve credit score']
 
-# 3. 过滤并转成 pandas DataFrame
-def filter_and_to_df(split_name):
+# 3. 转成 pandas DataFrame
+def to_df(split_name):
     data = dataset[split_name]
-    # 过滤出选中的意图
-    filtered_data = data.filter(lambda x: x['label'] in selected_intents)
     # 转成 DataFrame，只保留 text 和 intent 两列
     df = pd.DataFrame({
-        'text': filtered_data['text'],
-        'label': filtered_data['label']
+        'text': data['text'],
+        'label': data['label']
     })
     return df
 
-df_train = filter_and_to_df('train')
-df_val = filter_and_to_df('validation')
-df_test = filter_and_to_df('test')
+df_train = to_df('train')
+df_val = to_df('validation')
+df_test = to_df('test')
 
 # 4. 合并（直接合并训练和验证，测试集单独留着）
 df_train_all = pd.concat([df_train, df_val]).sample(frac=1, random_state=42).reset_index(drop=True)
