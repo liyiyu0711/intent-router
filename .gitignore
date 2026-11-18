@@ -8,3 +8,4 @@ docs/
 data.csv
 checkpoints/
 real_*.csv
+.env
