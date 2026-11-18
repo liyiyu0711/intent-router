@@ -4,3 +4,8 @@ df = pd.read_csv("real_train.csv")
 word_counts = df['text'].str.split().str.len()
 print("90%的句子单词数在:", word_counts.quantile(0.9))
 print("最长单词数:", word_counts.max())
+
+#拿到所有label
+all_labels = df['label'].unique()
+all_labels.sort()
+print("所有意图标签:", all_labels)
